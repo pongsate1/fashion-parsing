@@ -1,0 +1,17 @@
+net: "models/sega-8s-fashionista-v1.0/train_val.prototxt"
+test_iter: 45
+# make test net, but don't invoke it from the solver itself
+test_interval: 1000
+display: 20
+average_loss: 20
+lr_policy: "fixed"
+# lr for unnormalized softmax -- see train_val definition
+base_lr: 1e-13
+# high momentum
+momentum: 0.99
+# no gradient accumulation
+iter_size: 1
+max_iter: 100000
+weight_decay: 0.0005
+snapshot: 10000
+snapshot_prefix: "models/sega-8s-fashionista-v1.0/train"

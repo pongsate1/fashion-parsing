@@ -1,0 +1,414 @@
+<html>
+<head>
+<title>Canvas development</title>
+<style type="text/css">
+.resultRow {
+  white-space: nowrap;
+}
+.headerCell {
+  display: inline-block;
+  width: 200px;
+}
+.wrapCell {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.cellDescription {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: small;
+  font-family: monospace;
+  color: gray;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+.legendContainer {
+  display: inline-block;
+  vertical-align: middle;
+  /*column-count: 2;
+  -moz-column-count: 2;
+  -webkit-column-count: 2;*/
+}
+.legendItem {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: smaller;
+}
+.legendItemColor {
+  display: inline-block;
+  margin: 0 0.5em;
+  width: 0.7em;
+  height: 0.7em;
+  border: gray solid 1px;
+}
+</style>
+<script type="text/javascript">
+// H in [0, 360), S in [0, 1], V in [0, 1]
+function _hsv2rgb(h, s, v) {
+  var r, g, b, i,
+      data = [];
+  if (s === 0) {
+    r = v, g = v, b = v;
+  } else {
+    h = h / 60;
+    i = Math.floor(h);
+    data = [v*(1-s), v*(1-s*(h-i)), v*(1-s*(1-(h-i)))];
+    switch(i) {
+      case 0: r = v, g = data[2], b = data[0]; break;
+      case 1: r = data[1], g = v, b = data[0]; break;
+      case 2: r = data[0], g = v, b = data[2]; break;
+      case 3: r = data[0], g = data[1], b = v; break;
+      case 4: r = data[2], g = data[0], b = v; break;
+      default: r = v, g = data[0], b = data[1]; break;
+    }
+  }
+  return [r, g, b];
+}
+
+function _createClothingColormap(numberOfLabels) {
+  var colormap = [[1.0, 1.0, 1.0]],
+      n1 = Math.round((numberOfLabels - 3) / 2),
+      n2 = numberOfLabels - 3 - n1;
+  colormap.push([1.0, .75, .75]);
+  colormap.push([0.2, 0.1, 0.1]);
+  for (var i = 0; i < n1; ++i)
+    colormap.push(_hsv2rgb(360 * i / (n1 + 1), 1, 1));
+  for (var i = 0; i < n2; ++i)
+    colormap.push(_hsv2rgb(360 * i / (n2 + 1), 0.3, 0.8));
+  return colormap.map(function(rgb) {
+    return rgb.map(function(x) {
+      return Math.round(255 * x)
+    });
+  });
+}
+
+function _createCanvas(src, options) {
+  options = options || {}
+  var canvas = document.createElement("canvas"),
+      context = canvas.getContext("2d"),
+      image = new Image();
+  canvas.width = options.width || canvas.width;
+  canvas.height = options.height || canvas.height;
+  image.src = src;
+  image.onload = function() {
+    canvas.width = options.width || image.width;
+    canvas.height = options.height || image.height;
+    context.drawImage(image, 0, 0, image.width, image.height,
+                             0, 0, canvas.width, canvas.height);
+    if (options.onload) {
+      options.onload(canvas, options.userData);
+    }
+  };
+  return canvas;
+}
+
+function _applyColormap(canvas, colormap) {
+  var context = canvas.getContext("2d"),
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height),
+      pixels = imageData.data;
+  for (var i = 0; i < pixels.length; i += 4) {
+    var index = pixels[i]; // | (pixels[i + 1] << 8) | (pixels[i + 2] << 16);
+    pixels[i + 0] = colormap[index][0];
+    pixels[i + 1] = colormap[index][1];
+    pixels[i + 2] = colormap[index][2];
+  }
+  context.putImageData(imageData, 0, 0);
+}
+
+function _resizeCanvas(canvas, width, height) {
+  var temporaryCanvas = document.createElement("canvas"),
+      tempoaryContext = temporaryCanvas.getContext("2d");
+  temporaryCanvas.width = width;
+  temporaryCanvas.height = height;
+  tempoaryContext.drawImage(canvas, 0, 0, width, height);
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(temporaryCanvas, 0, 0);
+}
+
+function _createLegend(labels, colormap, index) {
+  var container = document.createElement("div");
+  for (var i in index) {
+    var legendItem = document.createElement("div"),
+        legendItemColor = document.createElement("span"),
+        legendItemLabel = document.createElement("span");
+    legendItemColor.className = "legendItemColor";
+    legendItemColor.style.backgroundColor = "rgb(" + colormap[index[i]].join(",") + ")"
+    legendItem.appendChild(legendItemColor);
+    legendItemLabel.appendChild(document.createTextNode(labels[index[i]]));
+    legendItem.appendChild(legendItemLabel);
+    legendItem.className = "legendItem";
+    container.appendChild(legendItem);
+  }
+  container.className = "legendContainer";
+  return container;
+}
+
+function _getUniqueLabelsFromCanvas(canvas) {
+  var data = canvas.getContext("2d")
+                   .getImageData(0, 0, canvas.width, canvas.height)
+                   .data,
+      labels = [];
+  for (var i = 0; i < data.length; i+=4)
+    if (labels.indexOf(data[i]) < 0)
+      labels.push(data[i]);
+  return labels;
+}
+
+function _getUnion(array1, array2) {
+  function unique(array) {
+    return array.filter(function(value, index) {
+      return array.indexOf(value) === index;
+    });
+  }
+  return unique(array1.concat(array2)).sort(function (x1, x2) {
+    return x1 - x2;
+  });
+}
+
+function _createSyncedCallback(numberOfCalls, func) {
+  return function () { if (--numberOfCalls == 0) { func(); } }
+}
+
+function renderMetadata(canvas, prediction) {
+  console.log(prediction);
+  var context = canvas.getContext("2d");
+  context.fillText(prediction.name, 0, 10);
+}
+
+function createWrapCell(elements) {
+  var wrapper = document.createElement("div");
+  wrapper.className = "wrapCell";
+  for (var i = 0; i < elements.length; ++i)
+    wrapper.appendChild(elements[i]);
+  return wrapper;
+}
+
+function createOverlayText(name, options) {
+  var container = document.createElement("div");
+  container.appendChild(document.createTextNode(name));
+  for (key in options) {
+    var item = document.createElement("div");
+    item.appendChild(document.createTextNode(key + ": " + options[key]));
+    container.appendChild(item);
+  }
+  container.className = "cellDescription"
+  return container;
+}
+
+function createRow(key, imageSrc, annotationSrc, predictions, labels, options) {
+  options = options || {};
+  var row = document.createElement("div"),
+      uniqueLabels = [],
+      colormap = options.colormap || _createClothingColormap(labels.length),
+      createLegendIfReady = _createSyncedCallback(predictions.length + 1, function () {
+    row.appendChild(_createLegend(labels, colormap, uniqueLabels));
+  });
+  row.appendChild(createWrapCell([_createCanvas(imageSrc, {
+    width: options.width,
+    height: options.height
+  }), createOverlayText(key)]));
+  row.appendChild(createWrapCell([_createCanvas(annotationSrc, {
+    onload: function (canvas) {
+      uniqueLabels = _getUnion(uniqueLabels, _getUniqueLabelsFromCanvas(canvas));
+      _applyColormap(canvas, colormap);
+      if (options.width && options.height)
+        _resizeCanvas(canvas, options.width, options.height);
+      createLegendIfReady();
+    }
+  }), createOverlayText("truth")]));
+  for (var i = 0; i < predictions.length; ++i) {
+    row.appendChild(createWrapCell([_createCanvas(predictions[i].src, {
+      userData: predictions[i],
+      onload: function (canvas) {
+        uniqueLabels = _getUnion(uniqueLabels, _getUniqueLabelsFromCanvas(canvas));
+        _applyColormap(canvas, colormap);
+        if (options.width && options.height)
+          _resizeCanvas(canvas, options.width, options.height);
+        createLegendIfReady();
+      }
+    }),
+    createOverlayText(predictions[i].name, {
+      ac: predictions[i].performance.accuracy.toFixed(2),
+      ap: predictions[i].performance.average_precision.toFixed(2),
+      ar: predictions[i].performance.average_recall.toFixed(2),
+      f1: predictions[i].performance.average_f1.toFixed(2)
+    })]));
+  }
+  row.className = "resultRow";
+  return row;
+}
+
+function requestJSONData(url, func) {
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+      var data = xmlhttp.responseText;
+      func(JSON.parse(data.replace(/NaN/g, '-1')));  // Allow NaN.
+    }
+  }
+  xmlhttp.open("GET", url, true);
+  xmlhttp.send();
+}
+
+function getQueryParams(queryString) {
+  var tokens,
+      params = {},
+      re = /[?&]?([^=]+)=([^&]*)/g;
+  while (tokens = re.exec(queryString.split("+").join(" ")))
+      params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+  return params;
+}
+
+function makeQueryParams(params) {
+  var queryString = "?";
+  var keys = Object.keys(params);
+  for (var i = 0; i < keys.length; ++i) {
+    queryString = queryString +
+                  encodeURIComponent(keys[i]) + "=" +
+                  encodeURIComponent(params[keys[i]]) +
+                  ((i < keys.length - 1) ? "&" : "");
+  }
+  return queryString;
+}
+
+function Pagination(count) {
+  var params = getQueryParams(document.location.search),
+      page = parseInt(params.page || 0),
+      perPage = parseInt(params.per_page || 10),
+      neighbors = parseInt(params.page_neighbors || 2),
+      pages = Math.ceil(count / perPage),
+      startIndex = Math.min(Math.max(page * perPage, 0), count),
+      endIndex = Math.min(Math.max((page + 1) * perPage, 0), count);
+  this.begin = function () { return startIndex; }
+  this.end = function () { return endIndex; }
+  this.render = function () {
+    var index = [];
+    for (var i = 0; i < pages; ++i) {
+      if (i <= neighbors ||
+          (page - neighbors <= i && i <= page + neighbors) ||
+          pages - neighbors <= i)
+        index.push(i);
+    }
+    var container = document.createElement("div");
+    {
+      var anchor = document.createElement("a");
+      params.page = page - 1;
+      if (page > 0)
+        anchor.href = makeQueryParams(params);
+      anchor.appendChild(document.createTextNode("Prev"));
+      container.appendChild(anchor);
+      container.appendChild(document.createTextNode(" "));
+    }
+    for (var i = 0; i < index.length; ++i) {
+      var anchor = document.createElement("a");
+      params.page = index[i];
+      if (index[i] !== page)
+        anchor.href = makeQueryParams(params);
+      anchor.appendChild(document.createTextNode(index[i]));
+      container.appendChild(anchor);
+      container.appendChild(document.createTextNode(" "));
+      if (i < index.length - 1 && index[i] + 1 != index[i+1])
+        container.appendChild(document.createTextNode("... "));
+    }
+    {
+      var anchor = document.createElement("a");
+      params.page = page + 1;
+      if (page < pages - 1)
+        anchor.href = makeQueryParams(params);
+      anchor.appendChild(document.createTextNode("Next"));
+      container.appendChild(anchor);
+    }
+    return container;
+  }
+}
+
+function getSortedKeys(data) {
+  var params = getQueryParams(document.location.search);
+  var keys = Object.keys(data.evaluation);
+  var field = data.models.indexOf(params.sort);
+  var performance = params.performance || "accuracy";
+  if (field < 0) {
+    keys.sort(function (x1, x2) { return x1 - x2; });
+  }
+  else {
+    keys.sort(function(x1, x2) {
+      return data.evaluation[x2][field][performance] -
+             data.evaluation[x1][field][performance];
+    });
+  }
+  return keys;
+}
+
+function createHeader(data) {
+  var container = document.createElement("div");
+  {
+    var anchor = document.createElement("a");
+    var params = getQueryParams(document.location.search);
+    delete params.sort;
+    delete params.performance;
+    anchor.appendChild(document.createTextNode("Input"));
+    anchor.className = "headerCell";
+    anchor.href = makeQueryParams(params);
+    container.appendChild(anchor);
+  }
+  {
+    var item = document.createElement("span");
+    item.appendChild(document.createTextNode("Truth"));
+    item.className = "headerCell";
+    container.appendChild(item);
+  }
+  for (var i = 0; i < data.models.length; ++i) {
+    var anchor = document.createElement("a");
+    var params = getQueryParams(document.location.search);
+    params.sort = data.models[i];
+    anchor.appendChild(document.createTextNode(data.models[i]));
+    anchor.className = "headerCell";
+    anchor.href = makeQueryParams(params);
+    container.appendChild(anchor);
+  }
+  container.className = "resultRow";
+  return container;
+}
+
+function getArchName() {
+  var path = window.location.pathname.split("/");
+  path.pop();
+  return path.pop();
+}
+
+window.onload = function() {
+  document.getElementById("arch").appendChild(
+    document.createTextNode(getArchName()));
+  requestJSONData("result.json", function(data) {
+    var colormap = _createClothingColormap(data.labels.length);
+    var keys = getSortedKeys(data);
+    var pagination = new Pagination(keys.length);
+    document.body.appendChild(pagination.render());
+    document.body.appendChild(createHeader(data));
+    for (var i = pagination.begin(); i < pagination.end(); ++i) {
+      var predictions = data.models.map(function(model, index) {
+        return {
+          src: model + "/" + keys[i] + ".png",
+          name: model,
+          performance: data.evaluation[keys[i]][index]
+        };
+      });
+      var row = createRow(keys[i],
+                          "images/" + keys[i] + ".jpg",
+                          "annotations/" + keys[i] + ".png",
+                          predictions,
+                          data.labels,
+                          { width: 200, height: 300, colormap: colormap });
+      document.body.appendChild(row);
+    }
+  });
+}
+</script>
+</head>
+<body>
+  <h1 id="arch"></h1>
+  <p><a href="summary.html">Summary</a></p>
+</body>
+</html>

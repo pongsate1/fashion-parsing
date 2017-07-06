@@ -1,0 +1,147 @@
+<html>
+<head>
+<title>Canvas development</title>
+<style type="text/css">
+.resultRow {
+  white-space: nowrap;
+}
+.headerCell {
+  display: inline-block;
+  width: 200px;
+}
+.wrapCell {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.cellDescription {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: small;
+  font-family: monospace;
+  color: gray;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+.legendContainer {
+  display: inline-block;
+  vertical-align: middle;
+  /*column-count: 2;
+  -moz-column-count: 2;
+  -webkit-column-count: 2;*/
+}
+.legendItem {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: smaller;
+}
+.legendItemColor {
+  display: inline-block;
+  margin: 0 0.5em;
+  width: 0.7em;
+  height: 0.7em;
+  border: gray solid 1px;
+}
+</style>
+<script type="text/javascript">
+function requestJSONData(url, func) {
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+      var data = xmlhttp.responseText;
+      func(JSON.parse(data.replace(/NaN/g, '-1')));  // Allow NaN.
+    }
+  }
+  xmlhttp.open("GET", url, true);
+  xmlhttp.send();
+}
+
+function createIndividualTable(data, measure) {
+  var table = document.createElement("table");
+  {
+    var tr = document.createElement("tr");
+    tr.appendChild(document.createElement("th"));
+    for (var i = 0; i < data.models.length; ++i) {
+      var th = document.createElement("th");
+      th.appendChild(document.createTextNode(data.models[i]));
+      tr.appendChild(th);
+    }
+    table.appendChild(tr);
+  }
+  for (var j = 0; j < data.labels.length; ++j) {
+    var tr = document.createElement("tr");
+    var th = document.createElement("th");
+    th.appendChild(document.createTextNode(data.labels[j]))
+    tr.appendChild(th);
+    for (var i = 0; i < data.models.length; ++i) {
+      var td = document.createElement("td");
+      var number = data.total_evaluation[i][measure][j];
+      td.appendChild(document.createTextNode((number < 0) ? "-" : number.toFixed(3)));
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
+function createTotalTable(data) {
+  var table = document.createElement("table");
+  var measures = ['accuracy', 'average_precision', 'average_recall', 'average_f1'];
+  {
+    var tr = document.createElement("tr");
+    tr.appendChild(document.createElement("th"));
+    for (var i = 0; i < data.models.length; ++i) {
+      var th = document.createElement("th");
+      th.appendChild(document.createTextNode(data.models[i]));
+      tr.appendChild(th);
+    }
+    table.appendChild(tr);
+  }
+  for (var j = 0; j < measures.length; ++j) {
+    var tr = document.createElement("tr");
+    var th = document.createElement("th");
+    th.appendChild(document.createTextNode(measures[j]))
+    tr.appendChild(th);
+    for (var i = 0; i < data.models.length; ++i) {
+      var td = document.createElement("td");
+      var number = data.total_evaluation[i][measures[j]];
+      td.appendChild(document.createTextNode(number.toFixed(3)));
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
+function getArchName() {
+  var path = window.location.pathname.split("/");
+  path.pop();
+  return path.pop();
+}
+
+window.onload = function() {
+  document.getElementById("arch").appendChild(
+    document.createTextNode(getArchName()));
+  requestJSONData("result.json", function(data) {
+    {
+      var header = document.createElement("h2");
+      header.appendChild(document.createTextNode("total"));
+      document.body.appendChild(header);
+      document.body.appendChild(createTotalTable(data));
+    }
+    var measures = ['precision', 'recall', 'f1'];
+    for (var i = 0; i < measures.length; ++i) {
+      var header = document.createElement("h2");
+      header.appendChild(document.createTextNode(measures[i]));
+      document.body.appendChild(header);
+      document.body.appendChild(createIndividualTable(data, "precision"));
+    }
+  });
+}
+</script>
+</head>
+<body>
+  <h1 id="arch"></h1>
+  <p><a href="./">Individual results</a></p>
+</body>
+</html>

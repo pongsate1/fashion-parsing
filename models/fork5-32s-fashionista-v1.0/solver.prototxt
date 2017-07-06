@@ -1,0 +1,20 @@
+net: "models/fork5-32s-fashionista-v1.0/train_val.prototxt"
+test_iter: 45
+test_interval: 1000000
+display: 20
+average_loss: 20
+gamma: 0.1
+stepsize: 10000
+lr_policy: "fixed"
+# lr for unnormalized softmax -- see train_val definition
+base_lr: 1e-10
+# high momentum
+momentum: 0.99
+# no gradient accumulation
+iter_size: 1
+max_iter: 200000
+weight_decay: 0.0005
+snapshot: 10000
+#snapshot_prefix: "models/fork5-32s-fashionista-v1.0/train"
+snapshot_prefix: "models/fork5-32s-fashionista-v1.0/train10"
+test_initialization: false
