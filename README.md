@@ -24,7 +24,7 @@ Instruction for fashion parsing
 2. Data preparation
 	Download and convert data into appropiate format according to README and script in each dataset's directory under data/.
 	
-3. Copy fcn-32s-pascalcontext/fcn-32s-pascalcontext.caffemodel from data package to models/fcn-32s-pascalcontext/ in fashion-parsing package. This model is used as based model for training FCN-32s for fashion datasets.
+3. Download fcn-32s-pascalcontext.caffemodel according to th url in models/fcn-32s-pascalcontext/readme.md. This model is used as based model for training FCN-32s for fashion datasets.
 
 4. Train FCN-32s, FCN-16s, FCN-8s, Attribute Layers Training (codename: segc-8s-pre), Attribute Broadcast (codename: sege-8s), and Attribute filtering (codename: attrlog) by execute:
 
