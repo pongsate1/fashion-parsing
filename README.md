@@ -15,15 +15,19 @@ Contents
 --------
 
 1. Data
+
 	Data is in data/. There are three fashion datasets: fashionista-v0.2, fashionista-v1.0, and tmm_dataset_sharing. See the instruction below for data preparation.
 
 2. Models
+
 	Models are in models/. There are 5 models used in fashion parsing: FCN-32s, FCN-16s, FCN-8s, Attribute Layers Training (codename: segc-8s-pre), Attribute Broadcast (codename: sege-8s), and Attribute filtering (codename: attrlog). The folder names are in <modelname>-<dataset> format. See the instruction below for training and running the model.
 
 3. Parsing output and evaluation result
+
 	Evaluation results and symbolic links to parsing output are in /public/fashionpose. This folder will be created automatically when run the model. Evaluation results are in json format. The actual output files of Attribute Broadcast (codename: sege-8s), and Attribute filtering (codename: attrlog) model are in the model's folder.
 
 4. Script
+
 	Python script and shell script are in examples/tangseng folder.
 
 Instruction for fashion parsing
