@@ -1,5 +1,15 @@
-Fashion-parsing package v20160222
-=================================
+Fashion-parsing 
+===============
+
+If you use this work, please cite https://arxiv.org/abs/1703.01386
+
+This work extends fully-convolutional neural networks (FCN) for the clothing parsing problem.  
+
+We extend FCN architecture with a side-branch network which we refer outfit encoder to predict a consistent set of clothing labels to encourage combinatorial preference, and with conditional random field (CRF) to explicitly consider coherent label assignment to the given image.
+
+Live demo at http://vision.is.tohoku.ac.jp/clothing_parsing
+
+Project page http://vision.is.tohoku.ac.jp/~tangseng/clothing_parsing_project
 
 Contents
 --------
