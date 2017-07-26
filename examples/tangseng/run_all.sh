@@ -1,6 +1,6 @@
 DATASETS=(
-  # "tmm_dataset_sharing"
-  # "fashionista-v1.0"
+  "tmm_dataset_sharing"
+  "fashionista-v1.0"
   "fashionista-v0.2"
   )
 MODELS=(
