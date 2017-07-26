@@ -74,3 +74,6 @@ Instruction for fashion parsing
 
 		python -m json.tool <json_file> | less
 
+Miscellaneous
+-------------------------------
+I have uploaded my utility library as myutil.py. It contains functions for deprocess an image in h5 files to a regular image for plot, show segmentation maps with colors, etc. 
