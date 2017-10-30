@@ -20,7 +20,7 @@ MODEL_DIR="models/"
 PUBLIC_DIR="public/fashionpose/"
 SCRIPT_DIR="examples/tangseng/"
 
-SGE_GPU=${SGE_GPU=0}
+SGE_GPU=${SGE_GPU=-1}
 
 printf "HOSTNAME=%s\n" `hostname`
 
