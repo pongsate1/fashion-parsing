@@ -50,15 +50,17 @@ def interp_surgery(net, layers):
 
 # model = solver.prototxt
 # base_weights = somthing.caffemodel
-# gpu = 0 or int(os.getenv('SGE_GPU', 0))
+# gpu = the gpu id or -1 for no gpu
 # max_iter = argument to solver.step() such as solver.step(max_iter)
 def solve(model, base_weights,out_model, gpu, max_iter):
     # init
-    if gpu is not None:
+    if gpu > -1:
+        print("Setting GPU mode")
         caffe.set_mode_gpu()
         caffe.set_device(int(gpu))
         print("Using GPU={0}".format(int(gpu)))
     else:
+        print("Setting CPU mode")
         caffe.set_mode_cpu()
     #solver = caffe.SGDSolver(os.path.join(MODEL_DIR, model, 'solver.prototxt'))
     solver = caffe.SGDSolver(model)
@@ -91,7 +93,7 @@ def setup(options):
     out_model = options.out_model
     num_iter = options.iter
 
-    SGE_GPU = int(os.getenv('SGE_GPU', 0))
+    SGE_GPU = int(os.getenv('SGE_GPU', -1))
     
     print 'Start training'
 
